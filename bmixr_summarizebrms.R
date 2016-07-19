@@ -91,7 +91,7 @@ compute_error_rate <- function(brms_modelresults){
     # is the class with the highest posterior probability same as the true class?
     classification_error <- which.max(out) != response + 1
     likelihood_error <- 1 - out[response + 1]
-    # collect for perplexity
+    # collect for perplexity | -log(predicted_probability of the observed response)
     log_prob <- -log(out[response + 1])
     errors <- data.frame(classification_error = classification_error,
                          likelihood_error = likelihood_error,
