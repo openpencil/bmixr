@@ -27,13 +27,13 @@ run_brms <- function(datasub,
                      response_of_interest,
                      covariates,
                      family_of_regression,
+                     include_randomslopes = F,
+                     interaction_variable1_pattern = NULL,
+                     interaction_variable2 = NULL,
                      randomeffects_term,
                      numcores,
                      numiter,
                      name_of_output_file,
-                     include_randomslopes = F,
-                     interaction_variable1_pattern = NULL,
-                     interaction_variable2 = NULL,
                      type_of_prior = NULL,
                      treedepth = 10,
                      adaptdelta = 0.99) {
@@ -112,7 +112,7 @@ run_brms <- function(datasub,
     cat("no_randomslopes", randomeffects_term, "\n")
     formula <- paste(formula_1, sprintf("(1|%s)", randomeffects_term), sep = " + ")
   } else {
-    # NB: Randomslopes will not work for more than 33 variables. Don't ask why.
+    # NB: Randomslopes will not work for more than 33 variables. Filing bug with Buerkner
     cat("including_randomslopes", randomeffects_term, "\n")
     formula <- paste(formula_1, sprintf("(1+%s|%s)", covariate_vector, randomeffects_term), sep = " + ")
   }
