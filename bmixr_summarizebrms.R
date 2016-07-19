@@ -20,6 +20,7 @@
 #### Load libraries ####
 library(data.table)
 library("brms")
+library("plyr")
 
 #### Read in BRMS model results ####
 brms_modelresults <- readRDS("./brms_modelresults.RDS")
@@ -71,3 +72,38 @@ summarize_brms_results <- function(modelresults) {
     return(allstats)
   }
 }
+
+#### Compute error rate on model predictions ####
+compute_error_rate <- function(brms_modelresults){
+  #'
+  #' @param brms_predictions predictions from the brms model
+  #' @param brms_modelresults brms_model_season
+  #' @example
+  #' whatpred <- "predict"
+  #' brms_modelresults <- brms_season
+  #'
+  brms_modelpredictions <- predict(object = brms_modelresults)
+  predictions <- ldply(sapply(1:nrow(brms_modelpredictions), function(brow){
+    #' brow <- 1
+    #'
+    out <- brms_modelpredictions[brow, ]/sum(brms_modelpredictions[1,])
+    response <- brms_modelresults$data$response[brow]
+    # is the class with the highest posterior probability same as the true class?
+    classification_error <- which.max(out) != response + 1
+    likelihood_error <- 1 - out[response + 1]
+    # collect for perplexity
+    log_prob <- -log(out[response + 1])
+    errors <- data.frame(classification_error = classification_error,
+                         likelihood_error = likelihood_error,
+                         logprob = log_prob, stringsAsFactors = F)
+    return(errors)
+  }, simplify = F))
+  err <- apply(predictions, 2, mean)
+  return(err)
+}
+
+#### Summarize brms results ####
+brms_summaries <- summarize_brms_results(modelresults = brms_modelresults)
+brms_error_rate <- compute_error_rate(brms_modelresults = brms_modelresults)
+
+
