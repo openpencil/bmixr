@@ -22,11 +22,8 @@ library(data.table)
 library("brms")
 library("plyr")
 
-#### Read in BRMS model results ####
-brms_modelresults <- readRDS("./brms_modelresults.RDS")
-
 #### Extract summaries from BRMS modelresults ####
-summarize_brms_results <- function(modelresults) {
+summarize_multinomial_brms <- function(modelresults) {
   #'
   #' @param modelresults from the BRMS model
   #' @example
@@ -72,22 +69,22 @@ summarize_brms_results <- function(modelresults) {
     return(allstats)
   }
 }
+# TODO: Gaussian, Binary
 
 #### Compute error rate on model predictions ####
-compute_error_rate <- function(brms_modelresults){
+compute_error_rate <- function(modelresults){
   #'
-  #' @param brms_predictions predictions from the brms model
-  #' @param brms_modelresults brms_model_season
+  #' @param modelresults from the BRMS model
   #' @example
-  #' whatpred <- "predict"
-  #' brms_modelresults <- brms_season
   #'
-  brms_modelpredictions <- predict(object = brms_modelresults)
-  predictions <- ldply(sapply(1:nrow(brms_modelpredictions), function(brow){
+  #' modelresults <- brms_modelresults
+  #'
+  modelpredictions <- predict(object = modelresults)
+  predictions <- ldply(sapply(1:nrow(modelpredictions), function(brow){
     #' brow <- 1
     #'
-    out <- brms_modelpredictions[brow, ]/sum(brms_modelpredictions[1,])
-    response <- brms_modelresults$data$response[brow]
+    out <- modelpredictions[brow, ]/sum(modelpredictions[1,])
+    response <- modelresults$data$response[brow]
     # is the class with the highest posterior probability same as the true class?
     classification_error <- which.max(out) != response + 1
     likelihood_error <- 1 - out[response + 1]
@@ -102,8 +99,20 @@ compute_error_rate <- function(brms_modelresults){
   return(err)
 }
 
-#### Summarize brms results ####
-brms_summaries <- summarize_brms_results(modelresults = brms_modelresults)
-brms_error_rate <- compute_error_rate(brms_modelresults = brms_modelresults)
-
-
+#### Compute R^2 of the regression model ####
+get_rsquared <- function(modelresults){
+  #'
+  #' @param modelresults from the BRMS model
+  #' modelresults <- brms_modelresults
+  #'
+  model_predictions <- predict(object = modelresults)
+  # Squared correlation between response and the predicted value
+  rsquared <- cor(modelresults$data$response_recoded, model_predictions[ ,"Estimate"]) ^ 2
+  # L2 distance between prediction and response
+  ss_residual <- sum((modelresults$data$response_recoded - model_predictions[ ,"Estimate"]) ^ 2)
+  # variance in the response times n
+  ss_total  <- sum((modelresults$data$response_recoded - mean(modelresults$data$response_recoded)) ^ 2)
+  # totol response variance explained by covariates
+  rsquared_ss <- 1 - (ss_residual/ss_total)
+  return(c(cor_obspred_sq = rsquared, var_explained = rsquared_ss))
+}
