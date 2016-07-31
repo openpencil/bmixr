@@ -61,6 +61,7 @@ run_brms <- function(datasub,
   #' samples_of_interest <- c(0, 1, 2)
   #' response_of_interest <- "some_response"
   #' covariates <- c("vector", "of", "covariates")
+  #' covariates <- c()
   #' family_of_regression  <- "multinomial"
   #' include_randomslopes <- F
   #' interaction_variable1_pattern <- "pattern_for_the_variable_with_interactions"
@@ -103,9 +104,19 @@ run_brms <- function(datasub,
                               collapse = "+")
   }
   if (family_of_regression == "multinomial") {
-    formula_1 <- sprintf("response_recoded ~ 0 + trait + trait:(%s)", covariate_vector)
+    if (is.null(covs_of_interest)) {
+      # Null model. 0: no global intercept. trait: trait level specific intercept
+      formula_1 <- sprintf("response_recoded ~ 0 + trait")
+    } else {
+      formula_1 <- sprintf("response_recoded ~ 0 + trait + trait:(%s)", covariate_vector)
+    }
   } else {
-    formula_1 <- sprintf("response_recoded ~ %s", covariate_vector)
+    if (is.null(covs_of_interest)) {
+      # Null model. 1: global intercept
+      formula_1 <- sprintf("response_recoded ~ 1")
+    } else {
+      formula_1 <- sprintf("response_recoded ~ %s", covariate_vector)
+    }
   }
   # Random Slopes Y/N
   if (include_randomslopes == F) {
