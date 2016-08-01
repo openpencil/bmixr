@@ -93,15 +93,17 @@ run_brms <- function(datasub,
   # estimates separate intercepts  for each response category
   # trait:covariate estimates estimates the regression coefficients for each level of response.
   # Interactions Y/N
-  covs_of_interest <- setdiff(covariates, c(response_of_interest, randomeffects_term))
+  covs_of_interest <- setdiff(as.character(covariates), c(response_of_interest, randomeffects_term))
   if (length(interaction_variable1_pattern) == 0 & length(interaction_variable2) == 0) {
     covariate_vector <- paste(covs_of_interest, collapse = "+")
   } else {
     interaction_vars <- grep(interaction_variable1_pattern, covs_of_interest, value = T)
     non_interaction_vars <- setdiff(covs_of_interest, interaction_vars)
-    covariate_vector <- paste(c(non_interaction_vars, interaction_vars,
-                                paste(interaction_vars, interaction_variable2, sep = ":")),
-                              collapse = "+")
+    interaction_terms <- apply(expand.grid(intvar = interaction_vars, intvar2 = interaction_variable2, stringsAsFactors = F),
+                               1, function(rrow){
+                                 paste(rrow["intvar"], rrow["intvar2"], sep = ":")
+                              })
+    covariate_vector <- paste(c(non_interaction_vars, interaction_vars, interaction_terms), collapse = "+")
   }
   if (family_of_regression == "multinomial") {
     if (is.null(covs_of_interest)) {
@@ -123,7 +125,6 @@ run_brms <- function(datasub,
     cat("no_randomslopes", randomeffects_term, "\n")
     formula <- paste(formula_1, sprintf("(1|%s)", randomeffects_term), sep = " + ")
   } else {
-    # NB: Randomslopes will not work for more than 33 variables. Filing bug with Buerkner
     cat("including_randomslopes", randomeffects_term, "\n")
     formula <- paste(formula_1, sprintf("(1+%s|%s)", covariate_vector, randomeffects_term), sep = " + ")
   }
